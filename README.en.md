@@ -57,7 +57,7 @@ Supported suites: `WOP-RSA2048-SHA256` / `WOP-RSA3072-SHA256` / `WOP-RSA4096-SHA
 ```java
 WopClient client = WopClient.builder()
         .appKey("app_001")
-        .suite("WOP-RSA3072-SHA256")            // or WOP-RSA2048/4096-SHA256 / WOP-SM2-SM3
+        .suite("WOP-RSA2048-SHA256")            // or WOP-RSA2048/4096-SHA256 / WOP-SM2-SM3
         .merchantPrivateKey(merchantPrivateKey)  // PEM or single-line Base64
         .platformPublicKey(platformPublicKey)
         .build();

@@ -22,9 +22,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 class KeyEncryptVectorTest {
 
+    private static final AlgorithmSuite RSA2048 = AlgorithmSuite.parse("WOP-RSA2048-SHA256");
     private static final AlgorithmSuite RSA3072 = AlgorithmSuite.parse("WOP-RSA3072-SHA256");
     private static final AlgorithmSuite RSA4096 = AlgorithmSuite.parse("WOP-RSA4096-SHA256");
     private static final AlgorithmSuite SM2 = AlgorithmSuite.parse("WOP-SM2-SM3");
+
+    @Test
+    void oaep2048UnwrapMatchesGoldenVector() {
+        JsonNode vector = TestVectors.firstById("keyEncrypt", "oaep2048-unwrap");
+        PrivateKey priv = KeyCodec.parsePrivateKey(TestVectors.keys("rsa2048").path("privatePkcs8B64").asText(), RSA2048);
+        byte[] cipher = Codec.b64UrlDecode(vector.path("cipherB64u").asText());
+        byte[] plain = RsaOaepKeyEncryptStrategy.INSTANCE.decrypt(cipher, priv);
+        // 字节级：解包明文 = DEK 载荷
+        assertEquals(vector.path("expectedPlaintext").asText(), new String(plain, StandardCharsets.UTF_8));
+    }
 
     @Test
     void oaep3072UnwrapMatchesGoldenVector() {

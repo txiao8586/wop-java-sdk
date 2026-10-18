@@ -9,6 +9,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,6 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -101,6 +103,56 @@ class WopClientConfigSpecTest {
             }
         } finally {
             pool.shutdownNow();
+        }
+    }
+
+    @Test
+    void defaultClientLateContenderReusesInstanceInsideLock() throws Exception {
+        // 二次检查 false 弧（先持锁者已初始化实例、后进锁线程直接复用）：纯竞速调度不保证命中
+        // ——后醒线程快路径即可返回。反射持锁制造确定性交错补齐该弧（JaCoCo 分支门禁 100%）。
+        WopSdkConfig config = new WopSdkConfig.Builder()
+                .appKey("app_late")
+                .suite("WOP-RSA3072-SHA256")
+                .merchantPrivateKey(RSA_PRIV)
+                .platformPublicKey(RSA_PUB)
+                .serverRoot("https://gw.example.com/gateway")
+                .transport(draft -> new TransportResponse(200, Collections.emptyMap(), new byte[0]))
+                .build();
+        WopClient holder = WopClient.fromConfig(config);
+        WopClient.resetDefault();
+
+        Field lockField = WopClient.class.getDeclaredField("DEFAULT_CLIENT_LOCK");
+        lockField.setAccessible(true);
+        Object lock = lockField.get(null);
+        Field instanceField = WopClient.class.getDeclaredField("defaultClientInstance");
+        instanceField.setAccessible(true);
+
+        ExecutorService pool = Executors.newSingleThreadExecutor();
+        Future<WopClient> worker;
+        AtomicReference<Thread> workerThread = new AtomicReference<>();
+        CountDownLatch submitted = new CountDownLatch(1);
+        try {
+            synchronized (lock) {
+                worker = pool.submit(() -> {
+                    workerThread.set(Thread.currentThread());
+                    submitted.countDown();
+                    return WopClient.defaultClient(); // 快路径读到 null，阻塞在锁入口
+                });
+                assertTrue(submitted.await(5, TimeUnit.SECONDS));
+                awaitThreadState(workerThread.get(), Thread.State.BLOCKED);
+                instanceField.set(null, holder); // 模拟"他人持锁期间已完成初始化"
+            } // 释放锁：worker 进入二次检查，instance 已非空 → 复用 holder
+            assertSame(holder, worker.get(5, TimeUnit.SECONDS));
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    private static void awaitThreadState(Thread thread, Thread.State expected) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (thread.getState() != expected) {
+            assertTrue(System.nanoTime() < deadline, "worker 未进入 " + expected + " 状态");
+            Thread.sleep(10);
         }
     }
 

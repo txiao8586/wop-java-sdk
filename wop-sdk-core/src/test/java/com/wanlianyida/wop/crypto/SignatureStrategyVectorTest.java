@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class SignatureStrategyVectorTest {
 
+    private static final AlgorithmSuite RSA2048 = AlgorithmSuite.parse("WOP-RSA2048-SHA256");
     private static final AlgorithmSuite RSA3072 = AlgorithmSuite.parse("WOP-RSA3072-SHA256");
     private static final AlgorithmSuite RSA4096 = AlgorithmSuite.parse("WOP-RSA4096-SHA256");
     private static final AlgorithmSuite SM2 = AlgorithmSuite.parse("WOP-SM2-SM3");
@@ -43,6 +44,21 @@ class SignatureStrategyVectorTest {
 
         byte[] sig = RsaPkcs1SignatureStrategy.INSTANCE.sign(msg, priv, Codec.utf8("x"));
         // 字节级：签名 = 向量；b64url 长度恒 512
+        assertEquals(vector.path("expectedSigB64u").asText(), Codec.b64UrlEncode(sig));
+        assertEquals(vector.path("sigLenBytes").asInt(), sig.length);
+        assertEquals(vector.path("b64uLen").asInt(), Codec.b64UrlEncode(sig).length());
+        assertTrue(RsaPkcs1SignatureStrategy.INSTANCE.verify(msg, sig, pub, Codec.utf8("x")));
+    }
+
+    @Test
+    void rsa2048SignMatchesGoldenVector() {
+        JsonNode vector = TestVectors.firstById("signature", "rsa2048-sign");
+        byte[] msg = Codec.utf8(vector.path("message").asText());
+        PrivateKey priv = KeyCodec.parsePrivateKey(TestVectors.keys("rsa2048").path("privatePkcs8B64").asText(), RSA2048);
+        PublicKey pub = KeyCodec.parsePublicKey(TestVectors.keys("rsa2048").path("publicSpkiB64").asText(), RSA2048);
+
+        byte[] sig = RsaPkcs1SignatureStrategy.INSTANCE.sign(msg, priv, Codec.utf8("x"));
+        // 字节级：签名 = 向量；b64url 长度恒 342（2048 位）
         assertEquals(vector.path("expectedSigB64u").asText(), Codec.b64UrlEncode(sig));
         assertEquals(vector.path("sigLenBytes").asInt(), sig.length);
         assertEquals(vector.path("b64uLen").asInt(), Codec.b64UrlEncode(sig).length());

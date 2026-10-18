@@ -64,7 +64,7 @@ VerifyResult result = WopClient.defaultClient().execute(
 
 ```java
 WopClient client = WopClient.builder()
-        .appKey("app_001").suite("WOP-RSA3072-SHA256")
+        .appKey("app_001").suite("WOP-RSA2048-SHA256")
         .merchantPrivateKey(merchantPrivateKey).platformPublicKey(platformPublicKey)
         .serverRoot("https://gw.example.com/gateway")
         .build();
@@ -107,7 +107,7 @@ WopClient client = WopClient.builder()
 ```java
 WopClient client = WopClient.builder()
         .appKey("app_001")
-        .suite("WOP-RSA3072-SHA256")            // 或 WOP-RSA2048/4096-SHA256 / WOP-SM2-SM3
+        .suite("WOP-RSA2048-SHA256")            // 或 WOP-RSA3072/4096-SHA256 / WOP-SM2-SM3
         .merchantPrivateKey(merchantPrivateKey)  // PEM 或 Base64 单行
         .platformPublicKey(platformPublicKey)
         .build();
@@ -166,7 +166,7 @@ mvn verify
 ```
 
 向量覆盖面（字节级断言 + 全负向量）：SHA-256/SM3 摘要与 digest 头、AES-256-GCM/SM4-GCM
-固定 key/IV 密文、RSA3072/4096 确定性签名、SM2 固定 k 签名（r‖s 64B）、OAEP 解包与
+固定 key/IV 密文、RSA2048/3072/4096 确定性签名、SM2 固定 k 签名（r‖s 64B）、OAEP 解包与
 MGF1-SHA-1 陷阱、SM2 C1C3C2 解密与 C1C2C3 拒收、DEK 载荷、digest 头格式规则（双空格/
 大写 hex/长度/跨族）、严格无填充 base64url。
 

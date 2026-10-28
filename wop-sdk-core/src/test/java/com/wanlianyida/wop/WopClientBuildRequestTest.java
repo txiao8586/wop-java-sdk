@@ -24,6 +24,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -182,6 +183,20 @@ class WopClientBuildRequestTest {
         SignHeader.Parsed sign = SignHeader.parse(draft.headers().get("x-wop-sign"));
         assertEquals(java.util.Arrays.asList("x-wop-appkey", "x-wop-content-digest", "x-wop-encrypt",
                 "x-wop-nonce", "x-wop-sub-mch-id", "x-wop-timestamp"), sign.signedHeaders());
+        assertTrue(signatureVerifies(draft, sign, RSA_PUB));
+    }
+
+    @Test
+    void subMchIdSignedWhileRequestIdStaysUnsigned() {
+        WopClient client = fixedClient(NONCE, () -> "fixedreq000000000000000000000001");
+        RequestDraft draft = client.buildRequest("GET", "/gateway/order/get", null, SecurityLevel.L0,
+                WopRequestOptions.builder().subMchId("PLF-SUB-001").requestId("req-042").build());
+
+        SignHeader.Parsed sign = SignHeader.parse(draft.headers().get("x-wop-sign"));
+        // 附录 J/J1 与附录 I/I1 语义相反：身份头入签、透传头不入签
+        assertTrue(sign.signedHeaders().contains("x-wop-sub-mch-id"));
+        assertFalse(sign.signedHeaders().contains("x-wop-request-id"));
+        assertEquals("req-042", draft.headers().get("x-wop-request-id"));
         assertTrue(signatureVerifies(draft, sign, RSA_PUB));
     }
 

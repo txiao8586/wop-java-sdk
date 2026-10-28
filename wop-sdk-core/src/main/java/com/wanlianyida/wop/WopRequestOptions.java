@@ -179,8 +179,10 @@ public final class WopRequestOptions {
     }
 
     /**
-     * 是否存在入向验签凭证覆盖（appKey/suite/双钥）。仅含 requestId/subMchId 等出向/透传字段时
-     * 返回 false——入向验签应直接走默认凭证，不要求 fromConfig 客户端。
+     * 是否存在入向验签凭证覆盖（appKey/suite/双钥）。仅含 requestId/subMchId 等出向字段、
+     * 或 serverRoot/connectTimeout/readTimeout/expiredSeconds 等传输字段时返回 false——
+     * 入向验签直接走默认凭证，不要求 fromConfig 客户端（0.3.0 起有意放宽：此前任何非空
+     * options 在无 sdkConfig 客户端上都会抛 configuration）。
      */
     boolean hasInboundOverrides() {
         return hasAppKey() || hasSuite() || hasMerchantPrivateKey() || hasPlatformPublicKey();

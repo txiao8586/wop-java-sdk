@@ -302,7 +302,7 @@ public final class WopClient {
                 Codec.utf8(effectiveAppKey));
         headers.put(HEADER_SIGN, SignHeader.build(effectiveSuite.securityReq(), effectiveExpired,
                 signedHeaders, Codec.b64UrlEncode(signature)));
-        // requestId 在签名落盘后写入，保证不在 signedHeaders 白名单中（网关按冻结清单重算验签，附录 I/I1）；
+        // requestId 在签名落盘后写入，保证不入签（网关按请求声明的 signedHeaders 逐头重建 canonical 验签，附录 I/I1）；
         // 商户未传 → 缺省生成（附录 I/I3：UUID 去连字符），最终头恒存在
         String effectiveRequestId = requestId != null ? requestId : requestIdGen.get();
         headers.put(HEADER_REQUEST_ID, effectiveRequestId);

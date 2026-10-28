@@ -92,11 +92,13 @@ RequestDraft draft = client.buildRequest("POST", "/gateway/order/create", body, 
         WopRequestOptions.builder().subMchId("PLF-SUB-001").build());
 ```
 
-The SDK writes `x-wop-sub-mch-id` and includes it in the `x-wop-sign` signedHeaders (leading/trailing
-whitespace trimmed; printable ASCII only, no internal whitespace, ≤128 chars). The header takes effect
-only when the gateway sub-merchant gray gate is open for the app and the app is an ISV app
-(app_type=20). Omitting it keeps the app's own identity: the header is absent and behavior is
-byte-identical to earlier versions.
+The SDK writes `x-wop-sub-mch-id` and includes it in the `x-wop-sign` signedHeaders (only leading/
+trailing ASCII spaces are trimmed; printable ASCII only, no internal whitespace, ≤128 chars; control
+characters such as tab/newline are rejected at build time even at the edges). **Gateway prerequisite**:
+the gateway must run the ISV D-13 build with the gray gate open for the app; until then the header is
+ignored by the gateway and the request runs under the app's own identity — do not enable it early.
+Omitting it keeps the app's own identity: the header is absent and behavior is byte-identical to
+earlier versions.
 
 ## Key Preparation (D12 distribution contract)
 

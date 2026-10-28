@@ -80,9 +80,11 @@ RequestDraft draft = client.buildRequest("POST", "/gateway/order/create", body, 
         WopRequestOptions.builder().subMchId("PLF-SUB-001").build());
 ```
 
-SDK 自动写入 `x-wop-sub-mch-id` 并纳入 `x-wop-sign` 的 signedHeaders（首尾空白 trim 后发送；
-仅接受可打印 ASCII、无内部空白、≤128 字符）。该头仅在网关子商户灰度放行且应用为 ISV 应用
-（app_type=20）时生效；不传 = 应用自身身份，头缺席，行为与旧版逐字节一致。
+SDK 自动写入 `x-wop-sub-mch-id` 并纳入 `x-wop-sign` 的 signedHeaders（**仅首尾空格可 trim；任何
+控制字符即便在首尾也直接拒**；仅接受可打印 ASCII、无内部空白、≤128 字符）。该头仅对 ISV 应用
+（app_type=20）生效；**前置**：网关须已部署 D-13（`x-wop-sub-mch-id` 条件入签），未部署时该头按
+未知头透传、请求以应用自身身份执行，子商户身份会静默丢失。不传 = 应用自身身份，头缺席，行为与
+旧版逐字节一致。
 
 > **Unirest 适配器（K9）**：`connectTimeout` 为实例级，请求级 connect 覆盖不生效；`readTimeout` 可按请求设置。
 

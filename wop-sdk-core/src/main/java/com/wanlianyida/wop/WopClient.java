@@ -58,8 +58,8 @@ public final class WopClient {
     private static final String HEADER_SUB_MCH_ID = "x-wop-sub-mch-id";
 
     /**
-     * 商户请求标识透传头（wop-specs 附录 I；不入 signedHeaders 白名单——网关按冻结清单
-     * 重算 canonical 验签，多一头直接导致签名不匹配）。恒存在：商户传值或缺省 UUID 自生成。
+     * 商户请求标识透传头（wop-specs 附录 I；恒不入 signedHeaders——写入时机在签名完成之后，
+     * 与网关「按声明 signedHeaders 重建 canonical」的口径配合）。恒存在：商户传值或缺省 UUID 自生成。
      */
     private static final String HEADER_REQUEST_ID = "x-wop-request-id";
 
@@ -302,7 +302,7 @@ public final class WopClient {
                 Codec.utf8(effectiveAppKey));
         headers.put(HEADER_SIGN, SignHeader.build(effectiveSuite.securityReq(), effectiveExpired,
                 signedHeaders, Codec.b64UrlEncode(signature)));
-        // requestId 在签名落盘后写入，保证不在 signedHeaders 白名单中（网关按冻结清单重算验签，附录 I/I1）；
+        // requestId 在签名落盘后写入，保证不进入 signedHeaders（附录 I/I1）；
         // 商户未传 → 缺省生成（附录 I/I3：UUID 去连字符），最终头恒存在
         String effectiveRequestId = requestId != null ? requestId : requestIdGen.get();
         headers.put(HEADER_REQUEST_ID, effectiveRequestId);

@@ -237,15 +237,26 @@ class WopRequestOptionsTest {
             WopError e = assertThrows(WopError.class,
                     () -> WopRequestOptions.builder().subMchId(bad).build());
             assertTrue(e.getMessage().contains("可打印 ASCII"), "Expected ASCII guard in: " + e.getMessage());
+            assertEquals(WopError.Category.configuration, e.category());
         }
         // 非 ASCII（中文）
         WopError cjk = assertThrows(WopError.class,
                 () -> WopRequestOptions.builder().subMchId("PLF中文").build());
         assertTrue(cjk.getMessage().contains("可打印 ASCII"));
+        assertEquals(WopError.Category.configuration, cjk.category());
         // 内部空白：网关 trimall 折叠后签名与身份查询不再一一对应
         WopError space = assertThrows(WopError.class,
                 () -> WopRequestOptions.builder().subMchId("PLF SUB").build());
         assertTrue(space.getMessage().contains("内部空白"));
+        assertEquals(WopError.Category.configuration, space.category());
+    }
+
+    @Test
+    void subMchIdPrintableAsciiBoundariesAccepted() {
+        // 0x21('!') / 0x7E('~') 为合法边界（变异 rel-gt/int-plus1 靶点）
+        assertEquals("!~", WopRequestOptions.builder().subMchId("!~").build().resolvedSubMchId());
+        assertEquals("!", WopRequestOptions.builder().subMchId("!").build().resolvedSubMchId());
+        assertEquals("~", WopRequestOptions.builder().subMchId("~").build().resolvedSubMchId());
     }
 
     @Test
@@ -255,6 +266,7 @@ class WopRequestOptionsTest {
         WopError e = assertThrows(WopError.class,
                 () -> WopRequestOptions.builder().subMchId(repeat('a', 129)).build());
         assertTrue(e.getMessage().contains("128"), "Expected 128 in: " + e.getMessage());
+        assertEquals(WopError.Category.configuration, e.category());
     }
 
     @Test

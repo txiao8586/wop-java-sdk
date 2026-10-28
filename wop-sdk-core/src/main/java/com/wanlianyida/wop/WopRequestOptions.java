@@ -181,6 +181,10 @@ public final class WopRequestOptions {
     /**
      * 是否存在入向验签凭证覆盖（appKey/suite/双钥）。仅含 requestId/subMchId 等出向/透传字段时
      * 返回 false——入向验签应直接走默认凭证，不要求 fromConfig 客户端。
+     * <p>
+     * 有意放宽（2026-10-27 结论，ISV D-13 同批）：serverRoot / connectTimeout / readTimeout /
+     * expiredSeconds 属出向或传输层参数，不参与入向凭证判定——只带这些字段的 options 不再要求
+     * fromConfig，入向直接使用客户端自身凭证（与默认值同源，无认证绕过面）。
      */
     boolean hasInboundOverrides() {
         return hasAppKey() || hasSuite() || hasMerchantPrivateKey() || hasPlatformPublicKey();

@@ -148,6 +148,31 @@ class WopClientVerifyTest {
     }
 
     @Test
+    void inboundVerifyIgnoresUnsignedSubMchHeader() {
+        // 附录 J/J3：入向校验不消费 x-wop-sub-mch-id——响应额外携带未入签的该头仍通过
+        byte[] body = Codec.utf8("{\"code\":\"SUCCESS\"}");
+        PlatformResponse resp = RSA_RIG.respond("/gateway/order/create", body, false);
+        resp.headers().put("x-wop-sub-mch-id", "PLF-SUB-001"); // 签名完成后追加，未入 signedHeaders
+        VerifyResult result = client.verifyResponse(resp.headers(), body, "/gateway/order/create");
+        assertTrue(result.ok(), () -> result.toString());
+        assertArrayEquals(body, result.plaintext());
+    }
+
+    @Test
+    void verifyWithServerRootOnlyOptionsUsesClientCredentials() {
+        // 入向判据只看凭证字段（hasInboundOverrides）：serverRoot/超时/expiredSeconds 不再要求 fromConfig
+        byte[] body = Codec.utf8("{\"code\":\"SUCCESS\"}");
+        PlatformResponse resp = RSA_RIG.respond("/gateway/order/create", body, false);
+        WopRequestOptions options = WopRequestOptions.builder()
+                .serverRoot("https://gw.example.com")
+                .readTimeout(1000)
+                .expiredSeconds(60L)
+                .build();
+        VerifyResult result = client.verifyResponse(resp.headers(), body, "/gateway/order/create", options);
+        assertTrue(result.ok(), () -> result.toString());
+    }
+
+    @Test
     void verifyResponseL2Ok() {
         byte[] plain = Codec.utf8("{\"data\":\"secret\"}");
         PlatformResponse resp = RSA_RIG.respond("/gateway/pay", plain, true);
